@@ -6,6 +6,7 @@ import { useUserStore } from "@/store/useUserStore";
 import OnboardingNavigator from "@/navigation/OnboardingNavigator";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import CameraCaptureScreen from "@/screens/logging/CameraCaptureScreen";
+import DescribeMealScreen from "@/screens/logging/DescribeMealScreen";
 import ScanResultsScreen from "@/screens/logging/ScanResultsScreen";
 import FoodItemEditScreen from "@/screens/logging/FoodItemEditScreen";
 import AddIngredientScreen from "@/screens/logging/AddIngredientScreen";
@@ -32,6 +33,11 @@ export default function RootNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabNavigator} />
             <Stack.Screen name="CameraCapture" component={CameraCaptureScreen} />
+            <Stack.Screen
+              name="DescribeMeal"
+              component={DescribeMealScreen}
+              options={{ presentation: "modal" }}
+            />
             <Stack.Screen name="ScanResults" component={ScanResultsScreen} />
             <Stack.Screen
               name="FoodItemEdit"

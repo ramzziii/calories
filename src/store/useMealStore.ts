@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { CustomMeal, FoodItem, LoggedMeal } from "@/types";
 import { getMealRepository } from "@/data/repositoryProvider";
 import { inferMealTypeFromHour, sumFoodItems } from "@/domain/mealMath";
+import { useHealthSyncStore } from "@/store/useHealthSyncStore";
+import { syncMealToHealth } from "@/services/healthSync";
 
 interface MealState {
   loggedMeals: LoggedMeal[];
@@ -60,6 +62,14 @@ export const useMealStore = create<MealState>((set, get) => ({
     } catch (err) {
       set({ loggedMeals: previous });
       throw err;
+    }
+
+    // Fire-and-forget — syncMealToHealth never throws, and a failed sync
+    // shouldn't affect the meal that's already saved locally. Covers
+    // every way of logging a meal (photo, barcode, description, custom
+    // meal reuse), since they all funnel through this action.
+    if (useHealthSyncStore.getState().enabled) {
+      syncMealToHealth(meal);
     }
   },
 

@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
 import { useMealStore } from "@/store/useMealStore";
 import { useUnitsStore } from "@/store/useUnitsStore";
+import { useFoodCorrectionsStore } from "@/store/useFoodCorrectionsStore";
 import { scaleFoodItemToQuantity } from "@/domain/mealMath";
 import {
   convertQuantityForDisplay,
@@ -47,6 +48,7 @@ export default function FoodItemEditScreen() {
   const updateFoodItem = useMealStore((s) => s.updateFoodItem);
   const removeFoodItem = useMealStore((s) => s.removeFoodItem);
   const unitSystem = useUnitsStore((s) => s.system);
+  const recordCorrection = useFoodCorrectionsStore((s) => s.recordCorrection);
 
   const item = meal?.items.find((i) => i.id === itemId);
 
@@ -63,6 +65,15 @@ export default function FoodItemEditScreen() {
   const [proteinG, setProteinG] = useState(String(item?.proteinG ?? ""));
   const [carbsG, setCarbsG] = useState(String(item?.carbsG ?? ""));
   const [fatG, setFatG] = useState(String(item?.fatG ?? ""));
+  const [fiberG, setFiberG] = useState(
+    item?.fiberG !== undefined ? String(item.fiberG) : ""
+  );
+  const [sugarG, setSugarG] = useState(
+    item?.sugarG !== undefined ? String(item.sugarG) : ""
+  );
+  const [sodiumMg, setSodiumMg] = useState(
+    item?.sodiumMg !== undefined ? String(item.sodiumMg) : ""
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   if (!item || !meal) {
@@ -91,6 +102,9 @@ export default function FoodItemEditScreen() {
     setProteinG(String(scaled.proteinG));
     setCarbsG(String(scaled.carbsG));
     setFatG(String(scaled.fatG));
+    setFiberG(scaled.fiberG !== undefined ? String(scaled.fiberG) : "");
+    setSugarG(scaled.sugarG !== undefined ? String(scaled.sugarG) : "");
+    setSodiumMg(scaled.sodiumMg !== undefined ? String(scaled.sodiumMg) : "");
   };
 
   const onSwap = (alternativeName: string) => {
@@ -104,14 +118,34 @@ export default function FoodItemEditScreen() {
       const canonicalQuantity = isNaN(typedQuantity)
         ? item.quantity
         : convertQuantityToCanonical(typedQuantity, displayQuantity.unit, item.unit);
-      await updateFoodItem(mealId, itemId, {
+      const correctedFields = {
         name,
         quantity: canonicalQuantity,
         calories: parseFloat(calories) || 0,
         proteinG: parseFloat(proteinG) || 0,
         carbsG: parseFloat(carbsG) || 0,
         fatG: parseFloat(fatG) || 0,
+        fiberG: fiberG.trim() === "" ? undefined : parseFloat(fiberG) || 0,
+        sugarG: sugarG.trim() === "" ? undefined : parseFloat(sugarG) || 0,
+        sodiumMg: sodiumMg.trim() === "" ? undefined : parseFloat(sodiumMg) || 0,
+      };
+      await updateFoodItem(mealId, itemId, correctedFields);
+
+      // Remember this correction (fire-and-forget) so the next time this
+      // food is recognized from a photo, it starts from what the user
+      // actually confirmed instead of the AI's raw first guess.
+      recordCorrection(name, {
+        quantity: correctedFields.quantity,
+        unit: item.unit,
+        calories: correctedFields.calories,
+        proteinG: correctedFields.proteinG,
+        carbsG: correctedFields.carbsG,
+        fatG: correctedFields.fatG,
+        fiberG: correctedFields.fiberG,
+        sugarG: correctedFields.sugarG,
+        sodiumMg: correctedFields.sodiumMg,
       });
+
       navigation.goBack();
     } catch {
       Alert.alert(
@@ -216,6 +250,47 @@ export default function FoodItemEditScreen() {
               />
             </View>
           </View>
+
+          <Text style={styles.fieldLabel}>Fiber, sugar & sodium (optional)</Text>
+          <View style={styles.macroGrid}>
+            <View style={styles.macroField}>
+              <TextInput
+                value={fiberG}
+                onChangeText={setFiberG}
+                placeholder="Fiber (g)"
+                placeholderTextColor={colors.textFaint}
+                keyboardType="decimal-pad"
+                style={styles.input}
+                inputAccessoryViewID={
+                  Platform.OS === "ios" ? numericInputAccessoryViewID : undefined
+                }
+              />
+            </View>
+            <View style={styles.macroField}>
+              <TextInput
+                value={sugarG}
+                onChangeText={setSugarG}
+                placeholder="Sugar (g)"
+                placeholderTextColor={colors.textFaint}
+                keyboardType="decimal-pad"
+                style={styles.input}
+                inputAccessoryViewID={
+                  Platform.OS === "ios" ? numericInputAccessoryViewID : undefined
+                }
+              />
+            </View>
+          </View>
+          <TextInput
+            value={sodiumMg}
+            onChangeText={setSodiumMg}
+            placeholder="Sodium (mg)"
+            placeholderTextColor={colors.textFaint}
+            keyboardType="decimal-pad"
+            style={[styles.input, { marginTop: spacing.sm }]}
+            inputAccessoryViewID={
+              Platform.OS === "ios" ? numericInputAccessoryViewID : undefined
+            }
+          />
 
           <Text style={styles.fieldLabel}>Not quite right? Swap the match</Text>
           <Card noPadding style={{ marginTop: spacing.xs }}>

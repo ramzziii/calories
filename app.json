@@ -29,7 +29,9 @@
           "cameraPermission": "YumTrack uses your camera to identify food and estimate nutrition from photos, and to scan barcodes on packaged food."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@kingstinct/react-native-healthkit",
+      "react-native-health-connect"
     ]
   }
 }

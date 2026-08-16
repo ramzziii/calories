@@ -28,7 +28,8 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
   CameraCapture: undefined;
-  ScanResults: { imageUri: string };
+  DescribeMeal: undefined;
+  ScanResults: { imageUri: string } | { textDescription: string };
   FoodItemEdit: { mealId: string; itemId: string };
   AddIngredient: { mealId: string };
   BarcodeScanner: undefined;

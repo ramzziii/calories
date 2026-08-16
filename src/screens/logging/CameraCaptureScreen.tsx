@@ -36,6 +36,12 @@ export default function CameraCaptureScreen() {
           onPress={requestPermission}
           style={{ marginTop: spacing.lg }}
         />
+        <Button
+          label="Describe your meal instead"
+          variant="ghost"
+          onPress={() => navigation.navigate("DescribeMeal")}
+          style={{ marginTop: spacing.sm }}
+        />
       </SafeAreaView>
     );
   }
@@ -71,11 +77,18 @@ export default function CameraCaptureScreen() {
           <Text style={styles.frameHintText}>Center your plate in frame</Text>
         </View>
         <View style={styles.controls}>
-          <Button
-            label="Choose from library"
-            variant="ghost"
-            onPress={handlePickFromLibrary}
-          />
+          <View style={styles.secondaryRow}>
+            <Button
+              label="Choose from library"
+              variant="ghost"
+              onPress={handlePickFromLibrary}
+            />
+            <Button
+              label="Describe instead"
+              variant="ghost"
+              onPress={() => navigation.navigate("DescribeMeal")}
+            />
+          </View>
           <View style={styles.shutterRow}>
             <RNPressable
               onPress={handleCapture}
@@ -126,6 +139,10 @@ const styles = StyleSheet.create({
   controls: {
     alignItems: "center",
     paddingBottom: spacing.xl,
+  },
+  secondaryRow: {
+    flexDirection: "row",
+    gap: spacing.lg,
   },
   shutterRow: {
     marginTop: spacing.md,

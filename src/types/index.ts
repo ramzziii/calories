@@ -35,6 +35,10 @@ export interface FoodItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  // Not every source provides these — undefined, not 0, when unknown.
+  fiberG?: number;
+  sugarG?: number;
+  sodiumMg?: number;
   source: "ai_vision" | "barcode" | "manual" | "custom_meal" | "database";
   barcodeUpc?: string;
   // Set true if the user has corrected this item's data — used to
@@ -84,12 +88,18 @@ export interface RecognizedFoodItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  fiberG?: number;
+  sugarG?: number;
+  sodiumMg?: number;
   alternativeMatches?: string[]; // for the "swap food match" feature
 }
 
 export interface FoodRecognitionResult {
   items: RecognizedFoodItem[];
-  rawImageUri: string;
+  // Exactly one of these is set, depending on whether the meal was
+  // recognized from a photo or a typed/spoken description.
+  rawImageUri?: string;
+  rawTextDescription?: string;
 }
 
 // ---------- Open Food Facts ----------
@@ -103,6 +113,9 @@ export interface PackagedFoodProduct {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  fiberPer100g?: number;
+  sugarPer100g?: number;
+  sodiumMgPer100g?: number;
   imageUrl?: string;
 }
 

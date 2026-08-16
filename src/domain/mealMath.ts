@@ -33,16 +33,29 @@ export function sumFoodItems(items: FoodItem[]): MealTotals {
  * otherwise silently produce NaN macros that then propagate into meal
  * totals and the dashboard.
  */
+type ScalableFields =
+  | "quantity"
+  | "calories"
+  | "proteinG"
+  | "carbsG"
+  | "fatG"
+  | "fiberG"
+  | "sugarG"
+  | "sodiumMg";
+
 export function scaleFoodItemToQuantity(
-  item: Pick<FoodItem, "quantity" | "calories" | "proteinG" | "carbsG" | "fatG">,
+  item: Pick<FoodItem, ScalableFields>,
   newQuantity: number
-): Pick<FoodItem, "calories" | "proteinG" | "carbsG" | "fatG"> {
+): Pick<FoodItem, Exclude<ScalableFields, "quantity">> {
   if (!Number.isFinite(newQuantity) || newQuantity < 0) {
     return {
       calories: item.calories,
       proteinG: item.proteinG,
       carbsG: item.carbsG,
       fatG: item.fatG,
+      fiberG: item.fiberG,
+      sugarG: item.sugarG,
+      sodiumMg: item.sodiumMg,
     };
   }
 
@@ -54,6 +67,10 @@ export function scaleFoodItemToQuantity(
     proteinG: roundTo(item.proteinG * factor, 1),
     carbsG: roundTo(item.carbsG * factor, 1),
     fatG: roundTo(item.fatG * factor, 1),
+    fiberG: item.fiberG !== undefined ? roundTo(item.fiberG * factor, 1) : undefined,
+    sugarG: item.sugarG !== undefined ? roundTo(item.sugarG * factor, 1) : undefined,
+    sodiumMg:
+      item.sodiumMg !== undefined ? roundTo(item.sodiumMg * factor, 0) : undefined,
   };
 }
 

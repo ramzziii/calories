@@ -15,9 +15,10 @@ import {
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
-import { recognizeFood } from "@/services/foodRecognition";
+import { recognizeFood, recognizeFoodFromText } from "@/services/foodRecognition";
 import { FoodItem, LoggedMeal, RecognizedFoodItem } from "@/types";
 import { useMealStore } from "@/store/useMealStore";
+import { useFoodCorrectionsStore } from "@/store/useFoodCorrectionsStore";
 import { inferMealTypeFromHour, sumFoodItems } from "@/domain/mealMath";
 import FoodItemCard from "@/components/FoodItemCard";
 import Button from "@/components/Button";
@@ -27,22 +28,51 @@ import { colors, radii, spacing, typography } from "@/theme/theme";
 type Props = NativeStackScreenProps<RootStackParamList, "ScanResults">;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+// If the user has previously corrected this same food (by name), start
+// from what they confirmed instead of the AI's raw first guess — see
+// useFoodCorrectionsStore for why.
 function recognizedToFoodItem(r: RecognizedFoodItem, idx: number): FoodItem {
-  return {
+  const correction = useFoodCorrectionsStore.getState().getCorrection(r.name);
+  const base = {
     id: `item_${Date.now()}_${idx}`,
     name: r.name,
+    source: "ai_vision" as const,
+  };
+
+  if (correction) {
+    return {
+      ...base,
+      quantity: correction.quantity,
+      unit: correction.unit,
+      calories: correction.calories,
+      proteinG: correction.proteinG,
+      carbsG: correction.carbsG,
+      fatG: correction.fatG,
+      fiberG: correction.fiberG,
+      sugarG: correction.sugarG,
+      sodiumMg: correction.sodiumMg,
+      userCorrected: true,
+    };
+  }
+
+  return {
+    ...base,
     quantity: r.estimatedQuantity,
     unit: r.unit,
     calories: r.calories,
     proteinG: r.proteinG,
     carbsG: r.carbsG,
     fatG: r.fatG,
-    source: "ai_vision",
+    fiberG: r.fiberG,
+    sugarG: r.sugarG,
+    sodiumMg: r.sodiumMg,
   };
 }
 
 export default function ScanResultsScreen({ route }: Props) {
-  const { imageUri } = route.params;
+  const imageUri = "imageUri" in route.params ? route.params.imageUri : undefined;
+  const textDescription =
+    "textDescription" in route.params ? route.params.textDescription : undefined;
   const navigation = useNavigation<Nav>();
   const addLoggedMeal = useMealStore((s) => s.addLoggedMeal);
   const removeFoodItem = useMealStore((s) => s.removeFoodItem);
@@ -57,7 +87,11 @@ export default function ScanResultsScreen({ route }: Props) {
     setLoading(true);
     setError(null);
 
-    recognizeFood(imageUri)
+    const recognition = imageUri
+      ? recognizeFood(imageUri)
+      : recognizeFoodFromText(textDescription!);
+
+    recognition
       .then(async (result) => {
         if (cancelled) return;
         const items = result.items.map(recognizedToFoodItem);
@@ -93,17 +127,21 @@ export default function ScanResultsScreen({ route }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [imageUri]);
+  }, [imageUri, textDescription]);
 
   const meal = loggedMeals.find((m) => m.id === mealId);
 
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Image source={{ uri: imageUri }} style={styles.loadingImage} />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.loadingImage} />
+        ) : (
+          <Text style={styles.errorEmoji}>✏️</Text>
+        )}
         <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.lg }} />
         <Text style={[typography.bodyMuted, { marginTop: spacing.md }]}>
-          Analyzing your plate...
+          {imageUri ? "Analyzing your plate..." : "Reading your description..."}
         </Text>
       </SafeAreaView>
     );
@@ -113,7 +151,9 @@ export default function ScanResultsScreen({ route }: Props) {
     return (
       <SafeAreaView style={styles.centered}>
         <Text style={styles.errorEmoji}>🤔</Text>
-        <Text style={typography.h2}>Couldn't read that photo</Text>
+        <Text style={typography.h2}>
+          {imageUri ? "Couldn't read that photo" : "Couldn't read that description"}
+        </Text>
         <Text
           style={[typography.bodyMuted, { textAlign: "center", marginTop: spacing.sm }]}
         >
@@ -131,7 +171,14 @@ export default function ScanResultsScreen({ route }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <Image source={{ uri: imageUri }} style={styles.heroImage} />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.heroImage} />
+        ) : (
+          <View style={styles.textHero}>
+            <Text style={typography.label}>You described</Text>
+            <Text style={styles.textHeroBody}>"{textDescription}"</Text>
+          </View>
+        )}
 
         <View style={styles.content}>
           <Text style={typography.h1}>{Math.round(meal.totalCalories)} cal</Text>
@@ -220,6 +267,16 @@ const styles = StyleSheet.create({
   heroImage: {
     width: "100%",
     height: 260,
+  },
+  textHero: {
+    backgroundColor: colors.backgroundAlt,
+    padding: spacing.lg,
+  },
+  textHeroBody: {
+    ...typography.h2,
+    fontSize: 18,
+    fontStyle: "italic",
+    marginTop: spacing.xs,
   },
   content: {
     padding: spacing.lg,

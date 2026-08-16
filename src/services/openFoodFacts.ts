@@ -16,6 +16,9 @@ interface OFFResponse {
       proteins_100g?: number;
       carbohydrates_100g?: number;
       fat_100g?: number;
+      fiber_100g?: number;
+      sugars_100g?: number;
+      sodium_100g?: number; // grams, not mg
     };
   };
 }
@@ -48,6 +51,9 @@ export async function lookupBarcode(
     proteinPer100g: n.proteins_100g ?? 0,
     carbsPer100g: n.carbohydrates_100g ?? 0,
     fatPer100g: n.fat_100g ?? 0,
+    fiberPer100g: n.fiber_100g,
+    sugarPer100g: n.sugars_100g,
+    sodiumMgPer100g: n.sodium_100g !== undefined ? n.sodium_100g * 1000 : undefined,
     imageUrl: p.image_front_small_url,
   };
 }
@@ -66,5 +72,17 @@ export function scaleToQuantity(product: PackagedFoodProduct, quantityG: number)
     proteinG: Math.round(product.proteinPer100g * factor * 10) / 10,
     carbsG: Math.round(product.carbsPer100g * factor * 10) / 10,
     fatG: Math.round(product.fatPer100g * factor * 10) / 10,
+    fiberG:
+      product.fiberPer100g !== undefined
+        ? Math.round(product.fiberPer100g * factor * 10) / 10
+        : undefined,
+    sugarG:
+      product.sugarPer100g !== undefined
+        ? Math.round(product.sugarPer100g * factor * 10) / 10
+        : undefined,
+    sodiumMg:
+      product.sodiumMgPer100g !== undefined
+        ? Math.round(product.sodiumMgPer100g * factor)
+        : undefined,
   };
 }

@@ -76,6 +76,11 @@ export default function PaywallScreen() {
           anytime.
         </Text>
 
+        <View style={styles.trustRow}>
+          <Text style={styles.trustLine}>✓ See your price before you pay</Text>
+          <Text style={styles.trustLine}>✓ Cancel in one tap — no emails, no hoops</Text>
+        </View>
+
         <View style={{ marginTop: spacing.lg }}>
           {PLAN_OPTIONS.map((plan) => {
             const isSelected = plan.id === selectedId;
@@ -144,6 +149,16 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 40,
     marginBottom: spacing.sm,
+  },
+  trustRow: {
+    marginTop: spacing.md,
+    gap: 4,
+  },
+  trustLine: {
+    ...typography.body,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.success,
   },
   planCard: {
     flexDirection: "row",
