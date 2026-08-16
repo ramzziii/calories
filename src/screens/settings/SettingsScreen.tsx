@@ -15,7 +15,9 @@ import { RootStackParamList } from "@/navigation/types";
 import { useUserStore } from "@/store/useUserStore";
 import { useUnitsStore } from "@/store/useUnitsStore";
 import { useHealthSyncStore } from "@/store/useHealthSyncStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { isHealthSyncSupported } from "@/services/healthSync";
+import { isCurrentlyPaid, daysLeftInTrial } from "@/domain/usageLimits";
 import { UnitSystem } from "@/domain/unitConversion";
 import Card from "@/components/Card";
 import { colors, radii, spacing, typography } from "@/theme/theme";
@@ -51,6 +53,22 @@ export default function SettingsScreen() {
   const healthSyncEnabled = useHealthSyncStore((s) => s.enabled);
   const setHealthSyncEnabled = useHealthSyncStore((s) => s.setEnabled);
   const healthSyncSupported = isHealthSyncSupported();
+  const userEmail = useAuthStore((s) => s.user?.email);
+  const trialStartedAt = useAuthStore((s) => s.trialStartedAt);
+  const subscriptionStatus = useAuthStore((s) => s.subscriptionStatus);
+  const subscriptionPeriodEnd = useAuthStore((s) => s.subscriptionPeriodEnd);
+  const signOut = useAuthStore((s) => s.signOut);
+
+  const isPaid = isCurrentlyPaid({
+    trialStartedAt,
+    subscriptionStatus,
+    subscriptionPeriodEnd,
+  });
+  const planSublabel = isPaid
+    ? "Premium — thanks for subscribing"
+    : trialStartedAt
+      ? `Free trial — ${daysLeftInTrial(trialStartedAt)} day${daysLeftInTrial(trialStartedAt) === 1 ? "" : "s"} left`
+      : "Not signed in";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -109,9 +127,21 @@ export default function SettingsScreen() {
         <Card noPadding>
           <Row
             label="Subscription"
-            sublabel="View plan, trial status, or cancel"
+            sublabel={planSublabel}
             onPress={() => navigation.navigate("Subscription")}
           />
+        </Card>
+
+        <Text style={styles.sectionTitle}>Account</Text>
+        <Card>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>{userEmail ?? "Signed in"}</Text>
+            </View>
+            <Pressable onPress={() => signOut()}>
+              <Text style={styles.signOutText}>Sign out</Text>
+            </Pressable>
+          </View>
         </Card>
 
         <Text style={styles.sectionTitle}>Goals & targets</Text>
@@ -172,6 +202,11 @@ const styles = StyleSheet.create({
   chevron: {
     fontSize: 22,
     color: colors.textFaint,
+  },
+  signOutText: {
+    ...typography.body,
+    fontWeight: "600",
+    color: colors.error,
   },
   divider: {
     height: 1,

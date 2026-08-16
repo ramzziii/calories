@@ -1,6 +1,49 @@
 import { File } from "expo-file-system";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "@/services/supabase";
 import { FoodRecognitionResult, RecognizedFoodItem } from "@/types";
+
+// Structured errors the analyze-meal Edge Function can return (see
+// checkAndConsumeQuota in supabase/functions/analyze-meal/index.ts) —
+// distinct from a generic recognition failure so screens can route the
+// user to sign-in or the paywall instead of just showing "try again."
+export class AuthRequiredError extends Error {
+  constructor() {
+    super("Sign in to analyze a meal.");
+    this.name = "AuthRequiredError";
+  }
+}
+
+export class TrialExpiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TrialExpiredError";
+  }
+}
+
+export class DailyLimitReachedError extends Error {
+  limit: number;
+  constructor(message: string, limit: number) {
+    super(message);
+    this.name = "DailyLimitReachedError";
+    this.limit = limit;
+  }
+}
+
+async function toQuotaError(err: unknown): Promise<Error | null> {
+  if (!(err instanceof FunctionsHttpError)) return null;
+  try {
+    const body = await err.context.json();
+    if (body.code === "AUTH_REQUIRED") return new AuthRequiredError();
+    if (body.code === "TRIAL_EXPIRED") return new TrialExpiredError(body.error);
+    if (body.code === "DAILY_LIMIT_REACHED") {
+      return new DailyLimitReachedError(body.error, body.limit);
+    }
+  } catch {
+    // Response body wasn't JSON — fall through to the generic message.
+  }
+  return null;
+}
 
 /**
  * Abstracted food recognition service.
@@ -161,7 +204,7 @@ async function openaiVisionProvider(imageUri: string): Promise<FoodRecognitionRe
     body: { image: base64, mimeType },
   });
 
-  if (error) throw error;
+  if (error) throw (await toQuotaError(error)) ?? error;
 
   const items = normalizeRecognizedItems((data?.items ?? []) as RecognizedFoodItem[]);
 
@@ -182,7 +225,7 @@ async function openaiTextProvider(description: string): Promise<FoodRecognitionR
     body: { text: description },
   });
 
-  if (error) throw error;
+  if (error) throw (await toQuotaError(error)) ?? error;
 
   const items = normalizeRecognizedItems((data?.items ?? []) as RecognizedFoodItem[]);
 
@@ -207,10 +250,19 @@ const ACTIVE_PROVIDER: FoodRecognitionProvider = isSupabaseConfigured
 const ACTIVE_TEXT_PROVIDER: (description: string) => Promise<FoodRecognitionResult> =
   isSupabaseConfigured ? openaiTextProvider : mockProviderFromText;
 
+function isQuotaError(err: unknown): boolean {
+  return (
+    err instanceof AuthRequiredError ||
+    err instanceof TrialExpiredError ||
+    err instanceof DailyLimitReachedError
+  );
+}
+
 export async function recognizeFood(imageUri: string): Promise<FoodRecognitionResult> {
   try {
     return await ACTIVE_PROVIDER(imageUri);
   } catch (err) {
+    if (isQuotaError(err)) throw err;
     console.error("Food recognition failed:", err);
     throw new Error(
       "We couldn't analyze that photo. Try again with better lighting, or log the meal manually."
@@ -224,6 +276,7 @@ export async function recognizeFoodFromText(
   try {
     return await ACTIVE_TEXT_PROVIDER(description);
   } catch (err) {
+    if (isQuotaError(err)) throw err;
     console.error("Food recognition from text failed:", err);
     throw new Error(
       "We couldn't make sense of that description. Try being more specific, or log the meal manually."

@@ -15,9 +15,16 @@ import {
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
-import { recognizeFood, recognizeFoodFromText } from "@/services/foodRecognition";
+import {
+  AuthRequiredError,
+  DailyLimitReachedError,
+  recognizeFood,
+  recognizeFoodFromText,
+  TrialExpiredError,
+} from "@/services/foodRecognition";
 import { FoodItem, LoggedMeal, RecognizedFoodItem } from "@/types";
 import { useMealStore } from "@/store/useMealStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useFoodCorrectionsStore } from "@/store/useFoodCorrectionsStore";
 import { inferMealTypeFromHour, sumFoodItems } from "@/domain/mealMath";
 import FoodItemCard from "@/components/FoodItemCard";
@@ -81,11 +88,17 @@ export default function ScanResultsScreen({ route }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mealId, setMealId] = useState<string | null>(null);
+  const [quota, setQuota] = useState<{
+    context: "trial_expired" | "daily_limit" | "auth";
+    message: string;
+  } | null>(null);
+  const signOut = useAuthStore((s) => s.signOut);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setQuota(null);
 
     const recognition = imageUri
       ? recognizeFood(imageUri)
@@ -118,7 +131,16 @@ export default function ScanResultsScreen({ route }: Props) {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message ?? "Something went wrong.");
+        if (cancelled) return;
+        if (err instanceof TrialExpiredError) {
+          setQuota({ context: "trial_expired", message: err.message });
+        } else if (err instanceof DailyLimitReachedError) {
+          setQuota({ context: "daily_limit", message: err.message });
+        } else if (err instanceof AuthRequiredError) {
+          setQuota({ context: "auth", message: err.message });
+        } else {
+          setError(err.message ?? "Something went wrong.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -143,6 +165,49 @@ export default function ScanResultsScreen({ route }: Props) {
         <Text style={[typography.bodyMuted, { marginTop: spacing.md }]}>
           {imageUri ? "Analyzing your plate..." : "Reading your description..."}
         </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (quota) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text style={styles.errorEmoji}>{quota.context === "auth" ? "🔒" : "⏱️"}</Text>
+        <Text style={typography.h2}>
+          {quota.context === "trial_expired"
+            ? "Your free trial has ended"
+            : quota.context === "daily_limit"
+              ? "Daily limit reached"
+              : "Please sign in again"}
+        </Text>
+        <Text
+          style={[typography.bodyMuted, { textAlign: "center", marginTop: spacing.sm }]}
+        >
+          {quota.message}
+        </Text>
+        {quota.context === "auth" ? (
+          <Button
+            label="Sign in again"
+            onPress={() => signOut()}
+            style={{ marginTop: spacing.lg }}
+          />
+        ) : (
+          <Button
+            label="See plans"
+            onPress={() =>
+              navigation.navigate("Paywall", {
+                context: quota.context as "trial_expired" | "daily_limit",
+              })
+            }
+            style={{ marginTop: spacing.lg }}
+          />
+        )}
+        <Button
+          label="Go back"
+          variant="ghost"
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: spacing.sm }}
+        />
       </SafeAreaView>
     );
   }

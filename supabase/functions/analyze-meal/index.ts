@@ -4,18 +4,36 @@
 // estimated quantity, calories, macros) matching the app's
 // RecognizedFoodItem[] shape.
 //
+// Requires a real signed-in user (not just the public anon key) and
+// enforces a per-user daily cap server-side — see checkAndConsumeQuota
+// below. This is the actual abuse boundary: the anon key alone used to
+// be enough to call this endpoint for free, unlimited, from anyone who
+// extracted it from the compiled app.
+//
 // Deploy:
 //   supabase functions deploy analyze-meal
 // Secret (required before it will work):
 //   supabase secrets set OPENAI_API_KEY=sk-...
+// SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are
+// injected automatically by the platform — no manual secret needed.
 //
 // Request body (exactly one of image or text):
 //   { image: string (base64, no data: prefix), mimeType?: string }
 //   { text: string }
 // Response body: { items: RecognizedFoodItem[] }
+// Error body: { code: string, error: string, limit?: number }
+
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const OPENAI_MODEL = "gpt-4o-mini";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const TRIAL_DAYS = 7;
+const TRIAL_DAILY_CAP = 15;
+const PAID_DAILY_CAP = 40;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +41,111 @@ const CORS_HEADERS = {
 };
 
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" };
+
+interface QuotaResult {
+  response: Response | null;
+  userId: string | null;
+}
+
+// Verifies the caller is a real signed-in user (rejects anon-key-only
+// requests), then looks up trial/subscription status and atomically
+// consumes one unit of today's quota. Returns a ready-to-send Response
+// when the request should be rejected, or null (with userId) to proceed.
+async function checkAndConsumeQuota(req: Request): Promise<QuotaResult> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userError } = await userClient.auth.getUser();
+  if (userError || !userData.user) {
+    return {
+      userId: null,
+      response: new Response(
+        JSON.stringify({ code: "AUTH_REQUIRED", error: "Sign in to analyze a meal." }),
+        { status: 401, headers: JSON_HEADERS }
+      ),
+    };
+  }
+  const userId = userData.user.id;
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const [{ data: account }, { data: subscription }] = await Promise.all([
+    admin.from("accounts").select("trial_started_at").eq("id", userId).maybeSingle(),
+    admin
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+
+  // "canceled" means auto-renew is off, not that access has ended yet —
+  // RevenueCat still reports the subscriber as entitled until
+  // current_period_end, so treat that window as paid too.
+  const stillWithinPaidPeriod =
+    !!subscription?.current_period_end &&
+    new Date(subscription.current_period_end).getTime() > Date.now();
+  const isPaid =
+    subscription?.status === "active" ||
+    (subscription?.status === "canceled" && stillWithinPaidPeriod);
+  let cap = PAID_DAILY_CAP;
+
+  if (!isPaid) {
+    // No account row should be very rare (trigger creates it at signup)
+    // — fall back to "trial just started" rather than blocking outright.
+    const trialStartedAt = account?.trial_started_at
+      ? new Date(account.trial_started_at)
+      : new Date();
+    const daysSinceStart = (Date.now() - trialStartedAt.getTime()) / 86_400_000;
+    if (daysSinceStart >= TRIAL_DAYS) {
+      return {
+        userId,
+        response: new Response(
+          JSON.stringify({
+            code: "TRIAL_EXPIRED",
+            error: "Your free trial has ended. Subscribe to keep analyzing meals.",
+          }),
+          { status: 403, headers: JSON_HEADERS }
+        ),
+      };
+    }
+    cap = TRIAL_DAILY_CAP;
+  }
+
+  const { data: newCount, error: usageError } = await admin.rpc(
+    "increment_usage_if_under_cap",
+    { p_user_id: userId, p_cap: cap }
+  );
+  if (usageError) {
+    console.error("usage increment error:", usageError);
+    return {
+      userId,
+      response: new Response(
+        JSON.stringify({ error: "Unexpected error checking usage." }),
+        {
+          status: 500,
+          headers: JSON_HEADERS,
+        }
+      ),
+    };
+  }
+  if (newCount === null) {
+    return {
+      userId,
+      response: new Response(
+        JSON.stringify({
+          code: "DAILY_LIMIT_REACHED",
+          limit: cap,
+          error: `You've used all ${cap} of today's meal scans. ${
+            isPaid ? "Come back tomorrow." : "Upgrade for a higher daily limit."
+          }`,
+        }),
+        { status: 429, headers: JSON_HEADERS }
+      ),
+    };
+  }
+
+  return { userId, response: null };
+}
 
 // OpenAI's strict structured-output mode requires every property in
 // "properties" to also appear in "required" — optional fields are
@@ -107,6 +230,9 @@ Deno.serve(async (req: Request) => {
       { status: 500, headers: JSON_HEADERS }
     );
   }
+
+  const quota = await checkAndConsumeQuota(req);
+  if (quota.response) return quota.response;
 
   let image: unknown;
   let mimeType: unknown;

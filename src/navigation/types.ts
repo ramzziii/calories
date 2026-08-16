@@ -25,6 +25,7 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  SignIn: undefined;
   Onboarding: undefined;
   Main: undefined;
   CameraCapture: undefined;
@@ -34,7 +35,7 @@ export type RootStackParamList = {
   AddIngredient: { mealId: string };
   BarcodeScanner: undefined;
   SaveMeal: { items: string }; // JSON-serialized FoodItem[]
-  Paywall: { context?: "onboarding" | "feature_gate" };
+  Paywall: { context?: "onboarding" | "feature_gate" | "trial_expired" | "daily_limit" };
   Support: undefined;
   FAQ: undefined;
   Subscription: undefined;
