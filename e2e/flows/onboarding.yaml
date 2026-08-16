@@ -1,0 +1,43 @@
+appId: com.yourcompany.plateful
+---
+# Full onboarding flow: Welcome -> Goals -> Stats -> ActivityLevel -> Summary
+# -> lands on the Dashboard ("Today") once profile.onboardingComplete is set.
+- launchApp:
+    clearState: true
+
+- assertVisible: "Plateful"
+- tapOn: "Get started"
+
+# Step 1 of 4 — Goals
+- assertVisible: "What's your goal?"
+- tapOn: "Lose weight"
+- tapOn: "Continue"
+
+# Step 2 of 4 — Stats
+- assertVisible: "Tell us about you"
+- tapOn: "Female"
+- tapOn: "e.g. 29"
+- inputText: "29"
+- tapOn: "e.g. 170"
+- inputText: "165"
+- tapOn: "e.g. 68"
+- inputText: "63"
+- hideKeyboard
+- tapOn: "Continue"
+
+# Step 3 of 4 — Activity level
+- assertVisible: "How active are you?"
+- tapOn: "Moderately active"
+- tapOn: "Continue"
+
+# Step 4 of 4 — Summary
+- assertVisible: "Your daily targets"
+- assertVisible: "calories / day"
+- assertVisible: "Protein"
+- assertVisible: "Carbs"
+- assertVisible: "Fat"
+- tapOn: "Start using Plateful"
+
+# Onboarding complete — RootNavigator swaps to the Main tab navigator.
+- assertVisible: "Today"
+- assertVisible: "Nothing logged yet"

@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Plateful",
+    "slug": "plateful",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FBF3EA"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourcompany.plateful",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Plateful uses your camera to identify food and estimate nutrition from photos.",
+        "NSPhotoLibraryUsageDescription": "Plateful needs access to your photo library so you can log meals from existing photos."
+      }
+    },
+    "android": {
+      "package": "com.yourcompany.plateful",
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Plateful uses your camera to identify food and estimate nutrition from photos."
+        }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Plateful uses your camera to scan barcodes on packaged food."
+        }
+      ]
+    ]
+  }
+}

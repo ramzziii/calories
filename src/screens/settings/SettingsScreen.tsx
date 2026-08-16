@@ -1,0 +1,114 @@
+import React from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "@/navigation/types";
+import { useUserStore } from "@/store/useUserStore";
+import Card from "@/components/Card";
+import { colors, spacing, typography } from "@/theme/theme";
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+interface RowProps {
+  label: string;
+  sublabel?: string;
+  onPress: () => void;
+}
+
+function Row({ label, sublabel, onPress }: RowProps) {
+  return (
+    <Pressable onPress={onPress} style={styles.row}>
+      <View>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {sublabel && <Text style={styles.rowSublabel}>{sublabel}</Text>}
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
+export default function SettingsScreen() {
+  const navigation = useNavigation<Nav>();
+  const profile = useUserStore((s) => s.profile);
+  const targets = useUserStore((s) => s.targets);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
+        <Text style={typography.h1}>Settings</Text>
+
+        <Text style={styles.sectionTitle}>Your plan</Text>
+        <Card noPadding>
+          <Row
+            label="Subscription"
+            sublabel="View plan, trial status, or cancel"
+            onPress={() => navigation.navigate("Subscription")}
+          />
+        </Card>
+
+        <Text style={styles.sectionTitle}>Goals & targets</Text>
+        <Card>
+          <Text style={typography.body}>
+            {targets ? `${targets.calories} cal/day target` : "Not set"}
+          </Text>
+          <Text style={typography.bodyMuted}>
+            Goal: {profile?.goal ?? "—"} · Activity:{" "}
+            {profile?.activityLevel?.replace("_", " ") ?? "—"}
+          </Text>
+        </Card>
+
+        <Text style={styles.sectionTitle}>Support</Text>
+        <Card noPadding>
+          <Row
+            label="Contact support"
+            sublabel="Get a real reply from our team"
+            onPress={() => navigation.navigate("Support")}
+          />
+          <View style={styles.divider} />
+          <Row
+            label="FAQ"
+            sublabel="Common questions, answered"
+            onPress={() => navigation.navigate("FAQ")}
+          />
+        </Card>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  sectionTitle: {
+    ...typography.label,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: spacing.md,
+  },
+  rowLabel: {
+    ...typography.body,
+    fontWeight: "600",
+  },
+  rowSublabel: {
+    ...typography.bodyMuted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  chevron: {
+    fontSize: 22,
+    color: colors.textFaint,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: spacing.md,
+  },
+});

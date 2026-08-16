@@ -1,0 +1,76 @@
+appId: com.yourcompany.plateful
+---
+# Photo-log -> edit-ingredient -> save flow.
+#
+# ASSUMES a profile already exists (onboarding completed), so the app
+# opens straight to the Dashboard — run onboarding.yaml first, or run
+# this against device/simulator state that already has a saved profile.
+#
+# Uses "Choose from library" rather than the camera shutter: simulators
+# have no camera hardware, so this is the only reliable capture path in
+# CI. It requires at least one photo already present in the simulator's
+# photo library as a one-time device-setup step before running this flow
+# (e.g. `xcrun simctl addmedia booted <path-to-image>` on iOS, or pushing
+# a file into the Android emulator's DCIM folder).
+#
+# recognizeFood() (src/services/foodRecognition.ts) is currently a mock
+# that returns one of three random meals, so this flow avoids asserting
+# on a specific food name and instead matches any of the known mock
+# items by regex.
+- launchApp
+
+- assertVisible: "Today"
+- tapOn:
+    id: "log-meal-button"
+
+# CameraCaptureScreen — grant camera permission if prompted, then use the
+# library path (no camera hardware in a simulator).
+- tapOn:
+    text: "Allow camera access"
+    optional: true
+- tapOn: "Choose from library"
+
+# System photo picker — tap the first available photo. This coordinate is
+# a best-effort default for a standard picker layout; adjust for your
+# simulator/OS version if the picker's first thumbnail sits elsewhere.
+- tapOn:
+    point: "20%, 25%"
+- tapOn:
+    text: "Add"
+    optional: true
+- tapOn:
+    text: "Done"
+    optional: true
+
+# ScanResultsScreen — wait out the mock recognition "network" delay.
+- assertVisible: "Analyzing your plate..."
+- assertNotVisible:
+    text: "Analyzing your plate..."
+    timeout: 8000
+- assertVisible: "detected"
+
+# Tap the first detected food item to edit it (matches any of the mock
+# provider's known item names, since the mock meal is chosen at random).
+- tapOn:
+    text: "Grilled chicken breast|Steamed white rice|Steamed broccoli|Avocado toast|Fried egg|Cheeseburger|French fries"
+    index: 0
+
+# FoodItemEditScreen — change the quantity, which auto-rescales macros
+# via scaleFoodItemToQuantity, then save the edit.
+- assertVisible: "Edit item"
+- tapOn:
+    id: "quantity-input"
+- eraseText
+- inputText: "200"
+- hideKeyboard
+- tapOn:
+    id: "save-changes-button"
+
+# Back on ScanResultsScreen — save the (now-edited) meal to the log.
+- assertVisible: "detected"
+- tapOn: "Save meal to log"
+
+# Lands back on the Dashboard with the meal reflected in today's totals.
+- assertVisible: "Today"
+- assertVisible: "Today's meals"
+- assertNotVisible: "Nothing logged yet"
