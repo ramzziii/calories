@@ -5,8 +5,10 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
 import { useUserStore } from "@/store/useUserStore";
+import { useUnitsStore } from "@/store/useUnitsStore";
+import { UnitSystem } from "@/domain/unitConversion";
 import Card from "@/components/Card";
-import { colors, spacing, typography } from "@/theme/theme";
+import { colors, radii, spacing, typography } from "@/theme/theme";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -32,11 +34,40 @@ export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const profile = useUserStore((s) => s.profile);
   const targets = useUserStore((s) => s.targets);
+  const unitSystem = useUnitsStore((s) => s.system);
+  const setUnitSystem = useUnitsStore((s) => s.setSystem);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
         <Text style={typography.h1}>Settings</Text>
+
+        <Text style={styles.sectionTitle}>Units</Text>
+        <View style={styles.unitRow}>
+          {(["metric", "imperial"] as UnitSystem[]).map((option) => {
+            const isSelected = unitSystem === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => setUnitSystem(option)}
+                style={[
+                  styles.unitPill,
+                  isSelected && styles.unitPillSelected,
+                  { flex: 1 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.unitPillText,
+                    isSelected && { color: colors.accentDark },
+                  ]}
+                >
+                  {option === "metric" ? "Metric (kg, cm)" : "Imperial (lb, ft/in)"}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         <Text style={styles.sectionTitle}>Your plan</Text>
         <Card noPadding>
@@ -110,5 +141,26 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginLeft: spacing.md,
+  },
+  unitRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  unitPill: {
+    paddingVertical: 14,
+    borderRadius: radii.pill,
+    backgroundColor: colors.card,
+    borderWidth: 2,
+    borderColor: "transparent",
+    alignItems: "center",
+  },
+  unitPillSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  unitPillText: {
+    ...typography.body,
+    fontWeight: "600",
+    fontSize: 13,
   },
 });

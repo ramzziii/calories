@@ -1,3 +1,5 @@
+import { File } from "expo-file-system";
+import { isSupabaseConfigured, supabase } from "@/services/supabase";
 import { FoodRecognitionResult, RecognizedFoodItem } from "@/types";
 
 /**
@@ -115,9 +117,58 @@ async function mockProvider(imageUri: string): Promise<FoodRecognitionResult> {
   };
 }
 
-// ---------- Provider selection ----------
+// ---------- OpenAI vision provider (via Supabase Edge Function) ----------
+//
+// The actual OpenAI call happens server-side in
+// supabase/functions/analyze-meal — the API key must never live in the
+// app bundle. This just reads the photo as base64 and forwards it.
 
-const ACTIVE_PROVIDER: FoodRecognitionProvider = mockProvider;
+function mimeTypeForExtension(extension: string): string {
+  switch (extension.toLowerCase()) {
+    case ".png":
+      return "image/png";
+    case ".heic":
+      return "image/heic";
+    case ".webp":
+      return "image/webp";
+    default:
+      return "image/jpeg";
+  }
+}
+
+async function openaiVisionProvider(imageUri: string): Promise<FoodRecognitionResult> {
+  const file = new File(imageUri);
+  const base64 = await file.base64();
+  const mimeType = mimeTypeForExtension(file.extension);
+
+  const { data, error } = await supabase.functions.invoke("analyze-meal", {
+    body: { image: base64, mimeType },
+  });
+
+  if (error) throw error;
+
+  const items = ((data?.items ?? []) as RecognizedFoodItem[]).map((item) => ({
+    ...item,
+    alternativeMatches: item.alternativeMatches ?? undefined,
+  }));
+
+  if (items.length === 0) {
+    throw new Error("No food items were detected in that photo.");
+  }
+
+  return { items, rawImageUri: imageUri };
+}
+
+// ---------- Provider selection ----------
+//
+// Falls back to the mock provider until Supabase is actually configured
+// (see src/services/supabase.ts) and the analyze-meal function is
+// deployed with an OPENAI_API_KEY secret — so the app keeps working out
+// of the box before that backend setup is done.
+
+const ACTIVE_PROVIDER: FoodRecognitionProvider = isSupabaseConfigured
+  ? openaiVisionProvider
+  : mockProvider;
 
 export async function recognizeFood(imageUri: string): Promise<FoodRecognitionResult> {
   try {
@@ -129,18 +180,3 @@ export async function recognizeFood(imageUri: string): Promise<FoodRecognitionRe
     );
   }
 }
-
-/**
- * Example of a real provider you could swap in later:
- *
- * async function llmVisionProvider(imageUri: string): Promise<FoodRecognitionResult> {
- *   const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: "base64" });
- *   const response = await fetch("https://your-backend.com/analyze-meal", {
- *     method: "POST",
- *     headers: { "Content-Type": "application/json" },
- *     body: JSON.stringify({ image: base64 }),
- *   });
- *   const data = await response.json();
- *   return { items: data.items, rawImageUri: imageUri };
- * }
- */

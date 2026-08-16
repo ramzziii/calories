@@ -26,15 +26,10 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Plateful uses your camera to identify food and estimate nutrition from photos."
+          "cameraPermission": "Plateful uses your camera to identify food and estimate nutrition from photos, and to scan barcodes on packaged food."
         }
       ],
-      [
-        "expo-barcode-scanner",
-        {
-          "cameraPermission": "Plateful uses your camera to scan barcodes on packaged food."
-        }
-      ]
+      "expo-localization"
     ]
   }
 }

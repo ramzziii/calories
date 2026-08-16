@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BarCodeScanner } from "expo-barcode-scanner";
+import { BarcodeScanningResult, CameraView, useCameraPermissions } from "expo-camera";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
@@ -16,7 +16,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "BarcodeScanner">;
 
 export default function BarcodeScannerScreen() {
   const navigation = useNavigation<Nav>();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -26,13 +26,6 @@ export default function BarcodeScannerScreen() {
     itemId: string;
   } | null>(null);
   const addLoggedMeal = useMealStore((s) => s.addLoggedMeal);
-
-  React.useEffect(() => {
-    (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
 
   const saveMeal = async (meal: LoggedMeal, itemId: string) => {
     setLoading(true);
@@ -48,7 +41,7 @@ export default function BarcodeScannerScreen() {
     }
   };
 
-  const handleScan = async ({ data }: { data: string }) => {
+  const handleScan = async ({ data }: BarcodeScanningResult) => {
     if (scanned || loading) return;
     setScanned(true);
     setLoading(true);
@@ -112,13 +105,20 @@ export default function BarcodeScannerScreen() {
     }
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return <View style={styles.container} />;
   }
 
-  if (!hasPermission) {
+  if (!permission.granted) {
     return (
       <SafeAreaView style={styles.permissionContainer}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={12}
+          style={styles.closeButtonLight}
+        >
+          <Text style={styles.closeTextLight}>✕</Text>
+        </Pressable>
         <Text style={styles.emoji}>📦</Text>
         <Text style={typography.h2}>Camera access needed</Text>
         <Text
@@ -126,17 +126,29 @@ export default function BarcodeScannerScreen() {
         >
           Plateful needs your camera to scan barcodes on packaged food.
         </Text>
+        <Button
+          label="Allow camera access"
+          onPress={requestPermission}
+          style={{ marginTop: spacing.lg }}
+        />
       </SafeAreaView>
     );
   }
 
   return (
     <View style={styles.container}>
-      <BarCodeScanner
-        onBarCodeScanned={scanned ? undefined : handleScan}
+      <CameraView
+        onBarcodeScanned={scanned ? undefined : handleScan}
         style={StyleSheet.absoluteFillObject}
       />
       <SafeAreaView style={styles.overlay}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={12}
+          style={styles.closeButton}
+        >
+          <Text style={styles.closeText}>✕</Text>
+        </Pressable>
         <View style={styles.frame} />
         <Text style={styles.hint}>Align barcode within the frame</Text>
 
@@ -213,6 +225,39 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: spacing.md,
+    left: spacing.lg,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.overlay,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  closeText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  closeButtonLight: {
+    position: "absolute",
+    top: spacing.md,
+    left: spacing.lg,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.backgroundAlt,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeTextLight: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
   },
   frame: {
     width: 260,

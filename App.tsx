@@ -9,17 +9,21 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { useUserStore } from "@/store/useUserStore";
 import { useMealStore } from "@/store/useMealStore";
 import { useWeightStore } from "@/store/useWeightStore";
+import { useUnitsStore } from "@/store/useUnitsStore";
 
 export default function App() {
   const isUserHydrated = useUserStore((s) => s.isHydrated);
   const isMealHydrated = useMealStore((s) => s.isHydrated);
   const isWeightHydrated = useWeightStore((s) => s.isHydrated);
-  const isHydrated = isUserHydrated && isMealHydrated && isWeightHydrated;
+  const isUnitsHydrated = useUnitsStore((s) => s.isHydrated);
+  const isHydrated =
+    isUserHydrated && isMealHydrated && isWeightHydrated && isUnitsHydrated;
 
   useEffect(() => {
     useUserStore.getState().hydrate();
     useMealStore.getState().hydrate();
     useWeightStore.getState().hydrate();
+    useUnitsStore.getState().hydrate();
   }, []);
 
   useEffect(() => {

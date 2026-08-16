@@ -8,6 +8,7 @@ import MainTabNavigator from "@/navigation/MainTabNavigator";
 import CameraCaptureScreen from "@/screens/logging/CameraCaptureScreen";
 import ScanResultsScreen from "@/screens/logging/ScanResultsScreen";
 import FoodItemEditScreen from "@/screens/logging/FoodItemEditScreen";
+import AddIngredientScreen from "@/screens/logging/AddIngredientScreen";
 import BarcodeScannerScreen from "@/screens/logging/BarcodeScannerScreen";
 import SaveMealScreen from "@/screens/meals/SaveMealScreen";
 import PaywallScreen from "@/screens/paywall/PaywallScreen";
@@ -43,6 +44,11 @@ export default function RootNavigator() {
               }}
             />
             <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
+            <Stack.Screen
+              name="AddIngredient"
+              component={AddIngredientScreen}
+              options={{ presentation: "modal" }}
+            />
             <Stack.Screen
               name="SaveMeal"
               component={SaveMealScreen}

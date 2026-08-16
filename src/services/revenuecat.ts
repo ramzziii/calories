@@ -1,6 +1,25 @@
 import { Platform, Linking } from "react-native";
-import Purchases, { CustomerInfo, PurchasesOffering } from "react-native-purchases";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import type PurchasesType from "react-native-purchases";
+import type { CustomerInfo, PurchasesOffering } from "react-native-purchases";
 import { SubscriptionInfo } from "@/types";
+
+// react-native-purchases has native code that isn't part of Expo Go's
+// bundled module set — it only works in a development build or a
+// production build. Importing it statically crashes the app instantly on
+// launch inside Expo Go ("native module doesn't exist"), so it's loaded
+// lazily and skipped entirely in Expo Go instead.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+async function loadPurchases(): Promise<typeof PurchasesType> {
+  if (isExpoGo) {
+    throw new Error(
+      "In-app purchases aren't available in Expo Go — use a development build."
+    );
+  }
+  const { default: Purchases } = await import("react-native-purchases");
+  return Purchases;
+}
 
 // Replace with your real RevenueCat public SDK keys once you have an
 // account (dashboard.revenuecat.com). Safe to leave as placeholders —
@@ -12,17 +31,22 @@ const REVENUECAT_API_KEYS = {
 
 let initialized = false;
 
-export function initRevenueCat(userId?: string) {
-  if (initialized) return;
-  const apiKey =
-    Platform.OS === "ios" ? REVENUECAT_API_KEYS.ios : REVENUECAT_API_KEYS.android;
-
-  Purchases.configure({ apiKey, appUserID: userId });
-  initialized = true;
+export async function initRevenueCat(userId?: string) {
+  if (initialized || isExpoGo) return;
+  try {
+    const Purchases = await loadPurchases();
+    const apiKey =
+      Platform.OS === "ios" ? REVENUECAT_API_KEYS.ios : REVENUECAT_API_KEYS.android;
+    Purchases.configure({ apiKey, appUserID: userId });
+    initialized = true;
+  } catch (err) {
+    console.warn("RevenueCat not configured yet:", err);
+  }
 }
 
 export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
   try {
+    const Purchases = await loadPurchases();
     const offerings = await Purchases.getOfferings();
     return offerings.current;
   } catch (err) {
@@ -35,6 +59,7 @@ export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
 // paywall UI must clearly show trial length and post-trial price BEFORE
 // this is called — see PaywallScreen.tsx.
 export async function purchasePackage(packageIdentifier: string) {
+  const Purchases = await loadPurchases();
   const offering = await getCurrentOffering();
   const pkg = offering?.availablePackages.find((p) => p.identifier === packageIdentifier);
   if (!pkg) throw new Error("Selected plan is not available right now.");
@@ -44,12 +69,14 @@ export async function purchasePackage(packageIdentifier: string) {
 }
 
 export async function restorePurchases(): Promise<SubscriptionInfo> {
+  const Purchases = await loadPurchases();
   const customerInfo = await Purchases.restorePurchases();
   return customerInfoToSubscriptionInfo(customerInfo);
 }
 
 export async function getSubscriptionStatus(): Promise<SubscriptionInfo> {
   try {
+    const Purchases = await loadPurchases();
     const customerInfo = await Purchases.getCustomerInfo();
     return customerInfoToSubscriptionInfo(customerInfo);
   } catch (err) {
