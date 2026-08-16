@@ -8,3 +8,9 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 jest.mock("expo-constants", () => ({
   expoConfig: { extra: {} },
 }));
+
+// Defaults to a non-US region so useUnitsStore's locale-based default is
+// "metric" in tests, matching what most existing test expectations assume.
+jest.mock("expo-localization", () => ({
+  getLocales: () => [{ languageTag: "en-GB", regionCode: "GB" }],
+}));
