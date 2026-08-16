@@ -37,7 +37,7 @@ export default class ErrorBoundary extends React.Component<
           <Text style={styles.emoji}>🍽️</Text>
           <Text style={typography.h2}>Something went wrong</Text>
           <Text style={styles.message}>
-            Plateful ran into an unexpected error. Your data is safe — try again.
+            YumTrack ran into an unexpected error. Your data is safe — try again.
           </Text>
           <Button
             label="Try again"

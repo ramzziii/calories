@@ -167,6 +167,13 @@ export default function ScanResultsScreen({ route }: Props) {
             </View>
           </Card>
 
+          <Button
+            label="+ Add ingredient"
+            variant="secondary"
+            onPress={() => navigation.navigate("AddIngredient", { mealId: meal.id })}
+            style={{ marginTop: spacing.sm }}
+          />
+
           <View style={styles.actions}>
             <Button
               label="Save meal to log"

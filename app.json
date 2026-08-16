@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Plateful",
-    "slug": "plateful",
+    "name": "YumTrack",
+    "slug": "yumtrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,29 +12,24 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourcompany.plateful",
+      "bundleIdentifier": "com.yourcompany.yumtrack",
       "infoPlist": {
-        "NSCameraUsageDescription": "Plateful uses your camera to identify food and estimate nutrition from photos.",
-        "NSPhotoLibraryUsageDescription": "Plateful needs access to your photo library so you can log meals from existing photos."
+        "NSCameraUsageDescription": "YumTrack uses your camera to identify food and estimate nutrition from photos.",
+        "NSPhotoLibraryUsageDescription": "YumTrack needs access to your photo library so you can log meals from existing photos."
       }
     },
     "android": {
-      "package": "com.yourcompany.plateful",
+      "package": "com.yourcompany.yumtrack",
       "permissions": ["CAMERA"]
     },
     "plugins": [
       [
         "expo-camera",
         {
-          "cameraPermission": "Plateful uses your camera to identify food and estimate nutrition from photos."
+          "cameraPermission": "YumTrack uses your camera to identify food and estimate nutrition from photos, and to scan barcodes on packaged food."
         }
       ],
-      [
-        "expo-barcode-scanner",
-        {
-          "cameraPermission": "Plateful uses your camera to scan barcodes on packaged food."
-        }
-      ]
+      "expo-localization"
     ]
   }
 }

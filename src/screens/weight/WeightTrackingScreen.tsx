@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { VictoryChart, VictoryLine, VictoryAxis, VictoryTheme } from "victory-native";
 import { format } from "date-fns";
 import { useWeightStore } from "@/store/useWeightStore";
+import { useUnitsStore } from "@/store/useUnitsStore";
+import { kgToLb, lbToKg } from "@/domain/unitConversion";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import { colors, radii, spacing, typography } from "@/theme/theme";
@@ -11,24 +13,30 @@ import { colors, radii, spacing, typography } from "@/theme/theme";
 export default function WeightTrackingScreen() {
   const entries = useWeightStore((s) => s.entries);
   const addEntry = useWeightStore((s) => s.addEntry);
+  const isImperial = useUnitsStore((s) => s.system === "imperial");
   const [input, setInput] = useState("");
+
+  const displayWeight = (weightKg: number) => (isImperial ? kgToLb(weightKg) : weightKg);
+  const unitLabel = isImperial ? "lb" : "kg";
 
   const onLog = () => {
     const value = parseFloat(input);
     if (isNaN(value) || value <= 0) return;
-    addEntry(value);
+    addEntry(isImperial ? lbToKg(value) : value);
     setInput("");
   };
 
   const chartData = entries.map((e) => ({
     x: new Date(e.loggedAt),
-    y: e.weightKg,
+    y: displayWeight(e.weightKg),
   }));
 
   const latest = entries[entries.length - 1];
   const first = entries[0];
   const trend =
-    latest && first && entries.length > 1 ? latest.weightKg - first.weightKg : 0;
+    latest && first && entries.length > 1
+      ? displayWeight(latest.weightKg) - displayWeight(first.weightKg)
+      : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -40,7 +48,7 @@ export default function WeightTrackingScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="Enter weight (kg)"
+              placeholder={`Enter weight (${unitLabel})`}
               placeholderTextColor={colors.textFaint}
               keyboardType="decimal-pad"
               style={styles.input}
@@ -51,10 +59,15 @@ export default function WeightTrackingScreen() {
 
         {entries.length > 0 && (
           <Card style={{ marginTop: spacing.md, alignItems: "center" }}>
-            <Text style={styles.latestValue}>{latest.weightKg} kg</Text>
+            <Text style={styles.latestValue}>
+              {isImperial
+                ? Math.round(displayWeight(latest.weightKg))
+                : Math.round(displayWeight(latest.weightKg) * 10) / 10}{" "}
+              {unitLabel}
+            </Text>
             <Text style={typography.bodyMuted}>
               {entries.length > 1
-                ? `${trend >= 0 ? "+" : ""}${trend.toFixed(1)} kg since ${format(
+                ? `${trend >= 0 ? "+" : ""}${trend.toFixed(1)} ${unitLabel} since ${format(
                     new Date(first.loggedAt),
                     "MMM d"
                   )}`

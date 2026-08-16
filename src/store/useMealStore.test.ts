@@ -125,6 +125,38 @@ describe("useMealStore", () => {
     });
   });
 
+  describe("addFoodItem", () => {
+    it("is a no-op when the meal does not exist", async () => {
+      await useMealStore.getState().addFoodItem("missing_meal", makeFoodItem());
+      expect(repo.updateLoggedMealItems).not.toHaveBeenCalled();
+    });
+
+    it("appends the item and recomputes totals on success", async () => {
+      const existing = makeFoodItem({ id: "item_1", calories: 100 });
+      const meal = makeLoggedMeal({ items: [existing] });
+      useMealStore.setState({ loggedMeals: [meal] });
+
+      const newItem = makeFoodItem({ id: "item_2", calories: 200 });
+      await useMealStore.getState().addFoodItem("meal_1", newItem);
+
+      const [updated] = useMealStore.getState().loggedMeals;
+      expect(updated.items.map((i: FoodItem) => i.id)).toEqual(["item_1", "item_2"]);
+      expect(updated.totalCalories).toBe(300);
+    });
+
+    it("rolls back the addition when the save rejects", async () => {
+      const meal = makeLoggedMeal();
+      useMealStore.setState({ loggedMeals: [meal] });
+      repo.updateLoggedMealItems.mockRejectedValue(new Error("offline"));
+
+      await expect(
+        useMealStore.getState().addFoodItem("meal_1", makeFoodItem({ id: "item_2" }))
+      ).rejects.toThrow("offline");
+
+      expect(useMealStore.getState().loggedMeals).toEqual([meal]);
+    });
+  });
+
   describe("updateFoodItem", () => {
     it("is a no-op when the meal does not exist", async () => {
       await useMealStore.getState().updateFoodItem("missing_meal", "item_1", {

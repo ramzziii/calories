@@ -1,4 +1,4 @@
-# Plateful
+# YumTrack
 
 AI-powered, photo-based calorie & macro tracker built with Expo (React Native + TypeScript).
 

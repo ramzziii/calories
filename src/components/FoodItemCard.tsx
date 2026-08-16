@@ -2,6 +2,8 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "@/theme/theme";
 import { FoodItem } from "@/types";
+import { useUnitsStore } from "@/store/useUnitsStore";
+import { formatFoodQuantity } from "@/domain/unitConversion";
 
 interface FoodItemCardProps {
   item: FoodItem;
@@ -13,6 +15,8 @@ interface FoodItemCardProps {
 // detected food item renders as its own tappable row, with its own
 // delete action — no more "delete the whole meal to fix one item."
 export default function FoodItemCard({ item, onPress, onDelete }: FoodItemCardProps) {
+  const unitSystem = useUnitsStore((s) => s.system);
+
   return (
     <Pressable onPress={onPress} style={styles.row}>
       <View style={{ flex: 1 }}>
@@ -27,8 +31,8 @@ export default function FoodItemCard({ item, onPress, onDelete }: FoodItemCardPr
           )}
         </View>
         <Text style={styles.quantity}>
-          {item.quantity}
-          {item.unit} · {Math.round(item.calories)} cal
+          {formatFoodQuantity(item.quantity, item.unit, unitSystem)} ·{" "}
+          {Math.round(item.calories)} cal
         </Text>
         <View style={styles.macroRow}>
           <Text style={styles.macroText}>P {Math.round(item.proteinG)}g</Text>

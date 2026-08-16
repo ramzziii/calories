@@ -2,7 +2,13 @@ module.exports = {
   root: true,
   extends: ["universe/native", "prettier"],
   plugins: ["jest"],
-  ignorePatterns: ["node_modules/", "dist/", ".expo/", "coverage/"],
+  ignorePatterns: [
+    "node_modules/",
+    "dist/",
+    ".expo/",
+    "coverage/",
+    "supabase/functions/",
+  ],
   overrides: [
     {
       files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}"],

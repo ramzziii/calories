@@ -1,4 +1,4 @@
-// Plateful visual identity
+// YumTrack visual identity
 // Warm, appetite-friendly palette — cream backgrounds, coral accent.
 // Deliberately avoids the stark-white / neon-green "fitness app" look.
 

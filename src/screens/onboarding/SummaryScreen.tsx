@@ -92,7 +92,7 @@ export default function SummaryScreen(_props: Props) {
           </Card>
         )}
       </View>
-      <Button label="Start using Plateful" onPress={onFinish} />
+      <Button label="Start using YumTrack" onPress={onFinish} />
     </SafeAreaView>
   );
 }

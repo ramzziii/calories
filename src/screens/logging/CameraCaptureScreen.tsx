@@ -29,7 +29,7 @@ export default function CameraCaptureScreen() {
         <Text
           style={[typography.bodyMuted, { textAlign: "center", marginTop: spacing.sm }]}
         >
-          Plateful uses your camera to identify food and estimate nutrition from photos.
+          YumTrack uses your camera to identify food and estimate nutrition from photos.
         </Text>
         <Button
           label="Allow camera access"

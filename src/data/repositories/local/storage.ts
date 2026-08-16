@@ -34,4 +34,5 @@ export const STORAGE_KEYS = {
   loggedMeals: "logged_meals",
   customMeals: "custom_meals",
   weightEntries: "weight_entries",
+  unitSystem: "unit_system",
 } as const;

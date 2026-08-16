@@ -15,6 +15,7 @@ interface MealState {
   removeLoggedMeal: (mealId: string) => Promise<void>;
 
   // Ingredient-level editing — the #1 requested fix from user reviews.
+  addFoodItem: (mealId: string, item: FoodItem) => Promise<void>;
   updateFoodItem: (
     mealId: string,
     itemId: string,
@@ -67,6 +68,23 @@ export const useMealStore = create<MealState>((set, get) => ({
     set({ loggedMeals: previous.filter((m) => m.id !== mealId) });
     try {
       await getMealRepository().removeLoggedMeal(mealId);
+    } catch (err) {
+      set({ loggedMeals: previous });
+      throw err;
+    }
+  },
+
+  addFoodItem: async (mealId, item) => {
+    const previous = get().loggedMeals;
+    const meal = previous.find((m) => m.id === mealId);
+    if (!meal) return;
+
+    const items = [...meal.items, item];
+    const updatedMeal = { ...meal, items, ...sumFoodItems(items) };
+    set({ loggedMeals: previous.map((m) => (m.id === mealId ? updatedMeal : m)) });
+
+    try {
+      await getMealRepository().updateLoggedMealItems(mealId, items);
     } catch (err) {
       set({ loggedMeals: previous });
       throw err;

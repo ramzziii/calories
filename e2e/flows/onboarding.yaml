@@ -1,11 +1,11 @@
-appId: com.yourcompany.plateful
+appId: com.yourcompany.yumtrack
 ---
 # Full onboarding flow: Welcome -> Goals -> Stats -> ActivityLevel -> Summary
 # -> lands on the Dashboard ("Today") once profile.onboardingComplete is set.
 - launchApp:
     clearState: true
 
-- assertVisible: "Plateful"
+- assertVisible: "YumTrack"
 - tapOn: "Get started"
 
 # Step 1 of 4 — Goals
@@ -36,7 +36,7 @@ appId: com.yourcompany.plateful
 - assertVisible: "Protein"
 - assertVisible: "Carbs"
 - assertVisible: "Fat"
-- tapOn: "Start using Plateful"
+- tapOn: "Start using YumTrack"
 
 # Onboarding complete — RootNavigator swaps to the Main tab navigator.
 - assertVisible: "Today"

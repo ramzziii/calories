@@ -30,6 +30,7 @@ export type RootStackParamList = {
   CameraCapture: undefined;
   ScanResults: { imageUri: string };
   FoodItemEdit: { mealId: string; itemId: string };
+  AddIngredient: { mealId: string };
   BarcodeScanner: undefined;
   SaveMeal: { items: string }; // JSON-serialized FoodItem[]
   Paywall: { context?: "onboarding" | "feature_gate" };

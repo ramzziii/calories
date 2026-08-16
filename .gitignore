@@ -28,6 +28,10 @@ yarn-error.*
 # Editor
 .vscode/
 .idea/
+.claude/
+
+# Supabase CLI local link state
+supabase/.temp/
 
 # Env
 .env

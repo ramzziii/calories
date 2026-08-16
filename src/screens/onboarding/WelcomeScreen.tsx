@@ -15,7 +15,7 @@ export default function WelcomeScreen({ navigation }: Props) {
         <View style={styles.iconCircle}>
           <Text style={styles.iconEmoji}>🍽️</Text>
         </View>
-        <Text style={styles.title}>Plateful</Text>
+        <Text style={styles.title}>YumTrack</Text>
         <Text style={styles.subtitle}>
           Snap a photo of your meal. We'll handle the calorie counting — right down to
           each ingredient on your plate.

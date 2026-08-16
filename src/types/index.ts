@@ -35,7 +35,7 @@ export interface FoodItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  source: "ai_vision" | "barcode" | "manual" | "custom_meal";
+  source: "ai_vision" | "barcode" | "manual" | "custom_meal" | "database";
   barcodeUpc?: string;
   // Set true if the user has corrected this item's data — used to
   // prioritize the correction in future lookups for the same food.
@@ -104,6 +104,16 @@ export interface PackagedFoodProduct {
   carbsPer100g: number;
   fatPer100g: number;
   imageUrl?: string;
+}
+
+// ---------- Common food database (local, curated) ----------
+
+export interface CommonFoodItem {
+  name: string;
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
 }
 
 // ---------- Subscription ----------

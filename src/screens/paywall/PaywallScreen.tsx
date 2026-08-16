@@ -16,7 +16,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Paywall">;
 // "surprise charges" complaints.
 const PLAN_OPTIONS = [
   {
-    id: "plateful_annual",
+    id: "yumtrack_annual",
     label: "Annual",
     trialDays: 7,
     priceAfterTrial: "$39.99/year",
@@ -24,7 +24,7 @@ const PLAN_OPTIONS = [
     badge: "Best value",
   },
   {
-    id: "plateful_monthly",
+    id: "yumtrack_monthly",
     label: "Monthly",
     trialDays: 3,
     priceAfterTrial: "$6.99/month",
@@ -70,7 +70,7 @@ export default function PaywallScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
         <Text style={styles.emoji}>🍽️</Text>
-        <Text style={typography.h1}>Unlock Plateful Premium</Text>
+        <Text style={typography.h1}>Unlock YumTrack Premium</Text>
         <Text style={[typography.bodyMuted, { marginTop: spacing.xs }]}>
           Unlimited photo scans, barcode lookups, and full history — try it free, cancel
           anytime.
