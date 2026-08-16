@@ -33,7 +33,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const TRIAL_DAYS = 7;
 const TRIAL_DAILY_CAP = 15;
-const PAID_DAILY_CAP = 40;
+const PAID_DAILY_CAP = 50;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

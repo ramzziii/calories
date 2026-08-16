@@ -102,7 +102,7 @@ export default function PaywallScreen() {
         <Text style={styles.emoji}>🍽️</Text>
         <Text style={typography.h1}>Unlock YumTrack Premium</Text>
         <Text style={[typography.bodyMuted, { marginTop: spacing.xs }]}>
-          40 meal scans a day, unlimited barcode lookups, and full history.
+          50 meal scans a day, unlimited barcode lookups, and full history.
         </Text>
 
         {bannerText && (

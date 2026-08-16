@@ -5,7 +5,7 @@
 
 export const TRIAL_DAYS = 7;
 export const TRIAL_DAILY_CAP = 15;
-export const PAID_DAILY_CAP = 40;
+export const PAID_DAILY_CAP = 50;
 
 export type SubscriptionStatus = "none" | "active" | "canceled" | "expired";
 
