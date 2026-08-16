@@ -124,7 +124,7 @@ export default function BarcodeScannerScreen() {
         <Text
           style={[typography.bodyMuted, { textAlign: "center", marginTop: spacing.sm }]}
         >
-          Plateful needs your camera to scan barcodes on packaged food.
+          YumTrack needs your camera to scan barcodes on packaged food.
         </Text>
         <Button
           label="Allow camera access"

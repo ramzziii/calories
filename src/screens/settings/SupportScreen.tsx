@@ -5,7 +5,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import { colors, radii, spacing, typography } from "@/theme/theme";
 
-const SUPPORT_EMAIL = "support@plateful-app.com";
+const SUPPORT_EMAIL = "support@yumtrack-app.com";
 
 // Fixes "no in-app customer support channel at all." At minimum this is
 // a working mailto link; the message field pre-fills the email body so
@@ -14,8 +14,8 @@ export default function SupportScreen() {
   const [message, setMessage] = useState("");
 
   const openMail = () => {
-    const body = encodeURIComponent(message || "Hi Plateful team, I need help with...");
-    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Plateful%20Support&body=${body}`);
+    const body = encodeURIComponent(message || "Hi YumTrack team, I need help with...");
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=YumTrack%20Support&body=${body}`);
   };
 
   return (

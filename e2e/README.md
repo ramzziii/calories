@@ -8,7 +8,7 @@ npm run e2e
 
 This requires the [Maestro CLI](https://maestro.mobile.dev/getting-started/installing-maestro)
 installed locally and a simulator/emulator running a debug build of the
-app with bundle/package id `com.yourcompany.plateful` (see `app.json`).
+app with bundle/package id `com.yourcompany.yumtrack` (see `app.json`).
 
 **These flows were authored but not executed** — the Maestro CLI isn't
 available in the environment this repo was set up in, so treat them as a
