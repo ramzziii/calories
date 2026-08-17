@@ -16,7 +16,8 @@ to.
   every app install) was enough to call the paid OpenAI endpoint for free,
   unlimited. Verified live: a request with only the anon key now gets
   `401 AUTH_REQUIRED` instead of an OpenAI response.
-- `revenuecat-webhook` function deployed, waiting on step 5 below
+- `revenuecat-webhook` function deployed, and its secret is already set —
+  see step 7 below, just needs RevenueCat's UI configured to use it
 - Google/Apple sign-in via Supabase's browser-redirect OAuth
   (`src/services/auth.ts`) — deliberately not using native SDKs, so this
   works in Expo Go once steps 1–3 are done, no dev build required
@@ -37,10 +38,14 @@ to.
 5. Supabase Dashboard → Authentication → Providers → **Google** → enable,
    paste Client ID/Secret → Save
 
-## 2. Apple sign-in
+## 2. Apple sign-in — SKIPPED FOR NOW
 
-Requires the Apple Developer Program ($99/year) —
-[developer.apple.com/programs](https://developer.apple.com/programs).
+You're holding off on this since it needs the paid Apple Developer Program
+($99/year). That's fine to defer — nothing else in this doc depends on it.
+The "Continue with Apple" button already only renders on iOS
+(`src/screens/auth/SignInScreen.tsx`), so nothing shows or breaks on
+Android in the meantime. When you're ready for it later, come back to this
+section:
 
 1. Certificates, Identifiers & Profiles → Identifiers → your App ID →
    enable the "Sign In with Apple" capability
@@ -62,48 +67,130 @@ If testing in Expo Go before you have a dev build, also add the `exp://`
 URL your terminal prints when you run `npx expo start` (something like
 `exp://192.168.x.x:8081/--/auth-callback`) — note this changes with your
 dev machine's IP, so it's easier to just test OAuth from a dev build once
-you have one (see step 6).
+you have one (see section 8).
 
-## 4. RevenueCat + store subscription products
+## 4. Google Play Console — create the app + subscription
 
-1. Create an account at [app.revenuecat.com](https://app.revenuecat.com),
-   add your app for iOS and Android
-2. **App Store Connect**: create 3 auto-renewable subscription products in
-   one subscription group — weekly $2.99, monthly $9.99, yearly $99.99.
-   Requires an active paid Apple Developer Program agreement.
-3. **Google Play Console**: create the matching 3 subscription products
-4. In RevenueCat: connect both stores, then create an Offering using the
-   default package types — `$rc_weekly` / `$rc_monthly` / `$rc_annual` —
-   mapped to the products above. These identifiers already match what
-   `src/screens/paywall/PaywallScreen.tsx` expects; if you name your
-   RevenueCat packages differently, update the `PLAN_OPTIONS` ids there to
-   match.
-5. RevenueCat → Project Settings → API Keys → copy the iOS and Android
-   **public** SDK keys → paste into `REVENUECAT_API_KEYS` in
-   `src/services/revenuecat.ts`
+This is the store side: it's where the $2.99/$9.99/$99.99 products
+actually get defined and sold. Android bundles all three into **one**
+subscription with three "base plans" (not three separate subscriptions
+the way Apple does it) — that's just how Play Console models it; nothing
+in the app's code needs to change either way, since RevenueCat abstracts
+this difference away for us.
 
-## 5. RevenueCat → Supabase webhook
+1. **Developer account** (skip if you already have one): go to
+   [play.google.com/console/signup](https://play.google.com/console/signup),
+   pay the one-time $25 registration fee, fill in your developer details.
+2. **Create the app**: Play Console → All apps → Create app.
+   - App name: `YumTrack`
+   - Default language: English (or your choice)
+   - App or game: **App**
+   - Free or paid: **Free** (subscriptions are sold as in-app products, not
+     as a paid app download)
+   - Accept the declarations → Create app
+3. Play Console will show a setup checklist (Dashboard → "Set up your
+   app"). You don't need to finish all of it before creating subscription
+   products, but you **will** need these done before you can publish to
+   even an internal testing track: app icon, short/full description,
+   screenshots, a privacy policy URL (any URL works for now, even a
+   placeholder page — swap it for a real one before public launch),
+   content rating questionnaire, target audience, and the Data Safety
+   form (declare what data YumTrack collects — camera photos, email from
+   sign-in, etc.).
+4. **Create the subscription**: left sidebar → Monetize → Products →
+   Subscriptions → **Create subscription**.
+   - Product ID: `premium` (type this exactly — code elsewhere in this
+     doc doesn't hardcode it, but keep it simple)
+   - Name: "YumTrack Premium"
+5. Inside that subscription, **Add base plan** three times:
+   - Base plan ID `weekly`, billing period **Weekly**, price **$2.99**
+   - Base plan ID `monthly`, billing period **Monthly**, price **$9.99**
+   - Base plan ID `yearly`, billing period **Yearly**, price **$99.99**
+   - Set each base plan's status to **Active** (a base plan you don't
+     activate won't be purchasable, even after the whole product is
+     active)
+6. You'll need at least one build of the app uploaded to Play Console
+   (even just to Internal Testing track) before subscriptions can
+   actually be test-purchased — see section 8 below (Dev build).
 
-Keeps the `subscriptions` table (what `analyze-meal` actually checks) in
-sync with real purchases/renewals/cancellations:
+## 5. Connect Play Console to RevenueCat
+
+RevenueCat needs read access to your Play Console financial data so it
+can verify purchases. This is the fiddliest part — go slow:
+
+1. **Google Cloud service account**: Play Console → Setup → API access.
+   This screen will prompt you to either link an existing Google Cloud
+   project or create one — let it create one for you.
+2. On that same API access page, under "Service accounts," click **Create
+   new service account** — it deep-links you into Google Cloud Console
+   with the right project pre-selected.
+3. In Google Cloud Console: Create service account → give it any name
+   (e.g. "revenuecat") → Create and continue → skip granting it a
+   project-level role (leave default) → Done.
+4. Back on that service account's page in Google Cloud Console: **Keys**
+   tab → Add key → Create new key → **JSON** → this downloads a `.json`
+   file. Keep it — you'll upload it to RevenueCat in step 8.
+5. Back in Play Console's API access page, find your new service account
+   in the list → **Grant access**.
+6. Set its permissions: under "Account permissions," grant **View
+   financial data** (required) — Finance → "View financial data, orders,
+   and cancellation survey responses" is enough for RevenueCat.
+7. Create your RevenueCat account at
+   [app.revenuecat.com](https://app.revenuecat.com) → create a Project
+   (e.g. "YumTrack") → Add app → platform **Google Play**.
+8. RevenueCat will ask for: your app's package name (`com.yourcompany.yumtrack`
+   from `app.json`, unless you've since changed it) and the service
+   account JSON file from step 4 — upload it.
+
+## 6. RevenueCat — products, entitlement, offering
+
+1. RevenueCat → your project → **Products** → it should detect the 3 base
+   plans from Play Console automatically once step 5 is connected (may
+   take a few minutes) — if not, add them manually using the same
+   product/base-plan IDs from step 4.
+2. **Entitlements** → Create entitlement → id `premium` → attach all 3
+   products to it. This is the "does this user get premium access" flag
+   the app checks.
+3. **Offerings** → open the default offering (or create one) → Add
+   Package, three times, using RevenueCat's standard package types so
+   the identifiers come out as `$rc_weekly`, `$rc_monthly`, `$rc_annual`
+   — these already match what `src/screens/paywall/PaywallScreen.tsx`
+   expects, so no code change needed if you follow this exactly. Attach
+   each package to its matching product from step 1.
+4. **Project Settings → API Keys** → copy the **Google Play public app
+   API key** (starts with `goog_`). Send it to me (or paste it yourself)
+   and I'll wire it into `REVENUECAT_API_KEYS.android` in
+   `src/services/revenuecat.ts` — it's a public SDK key, meant to ship
+   inside the app, same trust level as the Supabase anon key.
+
+## 7. RevenueCat → Supabase webhook — already done
+
+I generated a random secret and ran
+`supabase secrets set REVENUECAT_WEBHOOK_SECRET=...` against your project
+already — nothing for you to run. The only thing left is telling
+RevenueCat about it:
+
+RevenueCat → Project Settings → Integrations → Webhooks → Add webhook:
+
+- URL: `https://ojitycyhnrlguyvacxqp.supabase.co/functions/v1/revenuecat-webhook`
+- Authorization header value: ask me for the secret value when you get to
+  this step (I kept it out of this file since it's committed to git) and
+  enter it as `Bearer <that value>`
+
+## 8. Dev build (needed for real purchase testing)
+
+Google sign-in works in Expo Go once steps 1 and 3 are done. RevenueCat
+purchases do not — Play Billing needs a real dev build, and Play Console
+needs a build uploaded to at least Internal Testing before subscriptions
+are purchasable at all:
 
 ```bash
-supabase secrets set REVENUECAT_WEBHOOK_SECRET=<any random string you generate>
-```
-
-Then in RevenueCat: Project Settings → Integrations → Webhooks → add URL
-`https://ojitycyhnrlguyvacxqp.supabase.co/functions/v1/revenuecat-webhook`,
-Authorization header value `Bearer <the same random string>`.
-
-## 6. Dev build (needed for real purchase testing)
-
-Google/Apple sign-in works in Expo Go once steps 1–3 are done. RevenueCat
-purchases do not — that needs a real dev build:
-
-```bash
-eas build --profile development --platform ios
 eas build --profile development --platform android
 ```
+
+Once installed on a device, add yourself as a license tester in Play
+Console (Setup → License testing) so test purchases don't charge a real
+card.
 
 ## What was and wasn't verified in this environment
 
@@ -116,15 +203,16 @@ eas build --profile development --platform android
   within the paid period" case.
 - **Not verified live**: an authenticated user actually exhausting their
   daily cap and getting `429 DAILY_LIMIT_REACHED`. That needs a real
-  signed-in session, which needs steps 1–2 above — this environment has no
-  Google/Apple OAuth credentials to complete a real sign-in, no
-  service-role/dashboard access to fabricate a test user directly (tried
-  Supabase's built-in anonymous sign-in as a workaround; it's disabled by
-  default on your project), and no CI-linked dev build to test purchases.
-  The enforcement logic is a single atomic SQL statement
-  (`increment_usage_if_under_cap` in the migration) reviewed carefully, but
-  a real pass after step 1/2 is worth doing before this ships broadly.
-- **Not verified at all**: native Apple/Google button polish, real
-  purchases, refund/proration behavior on the App Store/Play Store side —
-  these need your dev accounts and a physical device, nothing here can
-  substitute for that.
+  signed-in session — this environment has no Google OAuth credentials to
+  complete a real sign-in, no service-role/dashboard access to fabricate a
+  test user directly (tried Supabase's built-in anonymous sign-in as a
+  workaround; it's disabled by default on your project), and no CI-linked
+  dev build to test purchases. The enforcement logic is a single atomic
+  SQL statement (`increment_usage_if_under_cap` in the migration) reviewed
+  carefully, but a real pass once you have a signed-in session is worth
+  doing before this ships broadly.
+- **Not verified at all**: real Play Store purchases, the RevenueCat
+  webhook actually firing and updating `subscriptions`, cancellation
+  behavior — these need your Play Console/RevenueCat setup above and a
+  physical (or emulator) Android device, nothing here can substitute for
+  that.
