@@ -60,14 +60,23 @@ section:
 
 ## 3. Redirect URL allowlist
 
-Supabase Dashboard → Authentication → URL Configuration → Redirect URLs →
-add `yumtrack://auth-callback`.
+This step is required, not optional — skipping it is exactly what causes
+"Safari can't open the page because it couldn't connect to the server"
+after picking your Google account: Supabase can't find your redirect URL
+in its allowlist, so it falls back to the default Site URL
+(`http://localhost:3000`), which your phone obviously can't reach.
 
-If testing in Expo Go before you have a dev build, also add the `exp://`
-URL your terminal prints when you run `npx expo start` (something like
-`exp://192.168.x.x:8081/--/auth-callback`) — note this changes with your
-dev machine's IP, so it's easier to just test OAuth from a dev build once
-you have one (see section 8).
+Supabase Dashboard → Authentication → URL Configuration → Redirect URLs →
+add **both** of these:
+
+- `yumtrack://auth-callback` — for when you have a dev build later
+- `exp://**` — a wildcard covering Expo Go's URL, which embeds your
+  computer's local IP and port (`exp://192.168.x.x:8081/--/auth-callback`)
+  and changes every time you're on a different network, so a single exact
+  URL isn't practical to keep updating
+
+Save, then fully close and reopen the app (Expo Go caches some of this)
+before testing sign-in again.
 
 ## 4. Google Play Console — create the app + subscription
 
