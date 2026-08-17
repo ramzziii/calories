@@ -2,6 +2,7 @@
   "expo": {
     "name": "YumTrack",
     "slug": "yumtrack",
+    "scheme": "yumtrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,7 +30,11 @@
           "cameraPermission": "YumTrack uses your camera to identify food and estimate nutrition from photos, and to scan barcodes on packaged food."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@kingstinct/react-native-healthkit",
+      "react-native-health-connect",
+      "expo-web-browser",
+      "expo-secure-store"
     ]
   }
 }

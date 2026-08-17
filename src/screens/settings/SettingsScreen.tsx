@@ -1,14 +1,28 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
 import { useUserStore } from "@/store/useUserStore";
 import { useUnitsStore } from "@/store/useUnitsStore";
+import { useHealthSyncStore } from "@/store/useHealthSyncStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { isHealthSyncSupported } from "@/services/healthSync";
+import { isCurrentlyPaid, daysLeftInTrial } from "@/domain/usageLimits";
 import { UnitSystem } from "@/domain/unitConversion";
 import Card from "@/components/Card";
 import { colors, radii, spacing, typography } from "@/theme/theme";
+
+const HEALTH_APP_NAME = Platform.OS === "ios" ? "Apple Health" : "Health Connect";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -36,6 +50,25 @@ export default function SettingsScreen() {
   const targets = useUserStore((s) => s.targets);
   const unitSystem = useUnitsStore((s) => s.system);
   const setUnitSystem = useUnitsStore((s) => s.setSystem);
+  const healthSyncEnabled = useHealthSyncStore((s) => s.enabled);
+  const setHealthSyncEnabled = useHealthSyncStore((s) => s.setEnabled);
+  const healthSyncSupported = isHealthSyncSupported();
+  const userEmail = useAuthStore((s) => s.user?.email);
+  const trialStartedAt = useAuthStore((s) => s.trialStartedAt);
+  const subscriptionStatus = useAuthStore((s) => s.subscriptionStatus);
+  const subscriptionPeriodEnd = useAuthStore((s) => s.subscriptionPeriodEnd);
+  const signOut = useAuthStore((s) => s.signOut);
+
+  const isPaid = isCurrentlyPaid({
+    trialStartedAt,
+    subscriptionStatus,
+    subscriptionPeriodEnd,
+  });
+  const planSublabel = isPaid
+    ? "Premium — thanks for subscribing"
+    : trialStartedAt
+      ? `Free trial — ${daysLeftInTrial(trialStartedAt)} day${daysLeftInTrial(trialStartedAt) === 1 ? "" : "s"} left`
+      : "Not signed in";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -69,13 +102,46 @@ export default function SettingsScreen() {
           })}
         </View>
 
+        <Text style={styles.sectionTitle}>Health sync</Text>
+        <Card>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>Sync to {HEALTH_APP_NAME}</Text>
+              <Text style={styles.rowSublabel}>
+                {healthSyncSupported
+                  ? "Sends calories and macros for each logged meal."
+                  : "Requires a full app build — not available in this preview."}
+              </Text>
+            </View>
+            <Switch
+              value={healthSyncEnabled}
+              onValueChange={(value) => {
+                setHealthSyncEnabled(value);
+              }}
+              disabled={!healthSyncSupported}
+            />
+          </View>
+        </Card>
+
         <Text style={styles.sectionTitle}>Your plan</Text>
         <Card noPadding>
           <Row
             label="Subscription"
-            sublabel="View plan, trial status, or cancel"
+            sublabel={planSublabel}
             onPress={() => navigation.navigate("Subscription")}
           />
+        </Card>
+
+        <Text style={styles.sectionTitle}>Account</Text>
+        <Card>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>{userEmail ?? "Signed in"}</Text>
+            </View>
+            <Pressable onPress={() => signOut()}>
+              <Text style={styles.signOutText}>Sign out</Text>
+            </Pressable>
+          </View>
         </Card>
 
         <Text style={styles.sectionTitle}>Goals & targets</Text>
@@ -136,6 +202,11 @@ const styles = StyleSheet.create({
   chevron: {
     fontSize: 22,
     color: colors.textFaint,
+  },
+  signOutText: {
+    ...typography.body,
+    fontWeight: "600",
+    color: colors.error,
   },
   divider: {
     height: 1,

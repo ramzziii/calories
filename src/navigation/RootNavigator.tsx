@@ -3,9 +3,12 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/types";
 import { useUserStore } from "@/store/useUserStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import SignInScreen from "@/screens/auth/SignInScreen";
 import OnboardingNavigator from "@/navigation/OnboardingNavigator";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import CameraCaptureScreen from "@/screens/logging/CameraCaptureScreen";
+import DescribeMealScreen from "@/screens/logging/DescribeMealScreen";
 import ScanResultsScreen from "@/screens/logging/ScanResultsScreen";
 import FoodItemEditScreen from "@/screens/logging/FoodItemEditScreen";
 import AddIngredientScreen from "@/screens/logging/AddIngredientScreen";
@@ -22,16 +25,25 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootNavigator() {
   const profile = useUserStore((s) => s.profile);
   const hasCompletedOnboarding = !!profile?.onboardingComplete;
+  const session = useAuthStore((s) => s.session);
+  const isSignedIn = !!session;
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!hasCompletedOnboarding ? (
+        {!isSignedIn ? (
+          <Stack.Screen name="SignIn" component={SignInScreen} />
+        ) : !hasCompletedOnboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabNavigator} />
             <Stack.Screen name="CameraCapture" component={CameraCaptureScreen} />
+            <Stack.Screen
+              name="DescribeMeal"
+              component={DescribeMealScreen}
+              options={{ presentation: "modal" }}
+            />
             <Stack.Screen name="ScanResults" component={ScanResultsScreen} />
             <Stack.Screen
               name="FoodItemEdit"

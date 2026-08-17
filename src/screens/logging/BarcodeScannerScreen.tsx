@@ -75,6 +75,9 @@ export default function BarcodeScannerScreen() {
       proteinG: scaled.proteinG,
       carbsG: scaled.carbsG,
       fatG: scaled.fatG,
+      fiberG: scaled.fiberG,
+      sugarG: scaled.sugarG,
+      sodiumMg: scaled.sodiumMg,
       source: "barcode",
       barcodeUpc: data,
     };

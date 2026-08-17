@@ -1,6 +1,17 @@
 import "react-native-url-polyfill/auto";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { createClient } from "@supabase/supabase-js";
+
+// Auth sessions (access + refresh tokens) go through the OS Keychain /
+// Keystore via expo-secure-store rather than plain AsyncStorage — the
+// session is what actually authenticates a user, so it shouldn't sit in
+// unencrypted storage. Matches the {getItem,setItem,removeItem} shape
+// supabase-js expects.
+const SecureStoreAdapter = {
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+};
 
 // Set these in .env (gitignored — see .env.example for the expected
 // shape). The EXPO_PUBLIC_ prefix is required for Expo to inline them
@@ -20,9 +31,13 @@ export const isSupabaseConfigured =
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: AsyncStorage,
+    storage: SecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE rather than the implicit flow — required for the
+    // browser-redirect OAuth sign-in in src/services/auth.ts, and safer
+    // on mobile since no token ever appears directly in a redirect URL.
+    flowType: "pkce",
   },
 });
